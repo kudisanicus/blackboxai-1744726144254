@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Sistem Pelaporan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { 
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-md w-full">
+    <!-- Logo/Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-white mb-2">Sistem Pelaporan</h1>
+      <p class="text-blue-100">Request & Komplain Management</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="bg-white rounded-lg shadow-xl p-8">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Login</h2>
+      
+      <form id="loginForm" class="space-y-6">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+              <i class="fas fa-user"></i>
+            </span>
+            <input type="text" id="username" 
+              class="pl-10 w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Masukkan username" required />
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+              <i class="fas fa-lock"></i>
+            </span>
+            <input type="password" id="password" 
+              class="pl-10 w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Masukkan password" required />
+          </div>
+        </div>
+
+        <button type="submit" 
+          class="w-full bg-blue-600 text-white rounded-lg py-3 px-4 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+          <i class="fas fa-sign-in-alt mr-2"></i>Login
+        </button>
+      </form>
+
+      <!-- Error Message -->
+      <div id="errorMessage" class="hidden mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-6 text-blue-100">
+      &copy; 2024 Sistem Pelaporan
+    </div>
+  </div>
+
+  <script>
+    const apiBase = 'http://localhost:3000/api';
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+
+      try {
+        const res = await fetch(`${apiBase}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Login gagal');
+        }
+
+        // Save token and user info
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username);
+
+        // Parse JWT to get role (in real app, use proper JWT library)
+        const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+        localStorage.setItem('role', tokenPayload.role);
+
+        // Redirect based on role
+        switch (tokenPayload.role) {
+          case 'admin':
+            window.location.href = 'admin.html';
+            break;
+          case 'teknisi':
+            window.location.href = 'teknisi.html';
+            break;
+          case 'user':
+            window.location.href = 'index.html';
+            break;
+          default:
+            throw new Error('Role tidak valid');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove('hidden');
+      }
+    });
+
+    // Check if already logged in
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('token');
+      const role = localStorage.getItem('role');
+      
+      if (token && role) {
+        switch (role) {
+          case 'admin':
+            window.location.href = 'admin.html';
+            break;
+          case 'teknisi':
+            window.location.href = 'teknisi.html';
+            break;
+          case 'user':
+            window.location.href = 'index.html';
+            break;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
