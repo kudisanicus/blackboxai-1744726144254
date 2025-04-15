@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Teknisi - Sistem Pelaporan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <header class="bg-teal-700 text-white p-4 shadow">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-semibold">Dashboard Teknisi - Sistem Pelaporan</h1>
+      <div class="flex items-center space-x-4">
+        <span id="userInfo" class="text-sm"></span>
+        <button onclick="logout()" class="bg-teal-800 text-white px-4 py-2 rounded hover:bg-teal-900 transition">
+          <i class="fas fa-sign-out-alt mr-2"></i>Logout
+        </button>
+      </div>
+    </div>
+  </header>
+  
+  <main class="flex-grow container mx-auto p-4">
+    <section class="mb-6 bg-white p-4 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">Filter Laporan</h2>
+      <form id="filterForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block font-medium mb-1">Tanggal Mulai</label>
+          <input type="date" id="startDate" class="w-full border border-gray-300 rounded p-2" />
+        </div>
+        <div>
+          <label class="block font-medium mb-1">Tanggal Akhir</label>
+          <input type="date" id="endDate" class="w-full border border-gray-300 rounded p-2" />
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 transition">
+            <i class="fas fa-filter mr-2"></i>Filter
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Daftar Laporan</h2>
+      <div id="reportsList" class="space-y-6">
+        <!-- Reports will be rendered here -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-200 text-center p-4 text-sm text-gray-600">
+    &copy; 2024 Sistem Pelaporan
+  </footer>
+
+  <script>
+    const apiBase = 'http://localhost:3000/api';
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+
+    // Check authentication
+    if (!token || !username) {
+      window.location.href = 'login.html';
+    }
+
+    // Display user info
+    document.getElementById('userInfo').textContent = `Teknisi: ${username}`;
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
+      window.location.href = 'login.html';
+    }
+
+    async function fetchAllReports() {
+      try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        let url = `${apiBase}/reports`;
+        
+        if (startDate && endDate) {
+          url += `?startDate=${startDate}&endDate=${endDate}`;
+        }
+        
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+          }
+          throw new Error('Gagal mengambil data');
+        }
+
+        const reports = await res.json();
+        renderReports(reports);
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function renderReports(reports) {
+      const container = document.getElementById('reportsList');
+      container.innerHTML = '';
+      
+      if (reports.length === 0) {
+        container.innerHTML = '<p class="text-gray-600">Tidak ada laporan ditemukan.</p>';
+        return;
+      }
+
+      reports.forEach(report => {
+        const updatesHtml = report.updates.map(u => 
+          `<li class="text-sm text-gray-500">[${new Date(u.date).toLocaleString('id-ID')}] ${u.message}</li>`
+        ).join('');
+        
+        container.innerHTML += `
+          <div class="bg-white p-6 rounded shadow">
+            <h3 class="font-semibold text-lg">${report.title} 
+              <span class="text-sm font-normal text-gray-600">(${report.type})</span>
+            </h3>
+            <p class="text-gray-700 mb-2">${report.description}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <p><strong>Status:</strong> ${report.status}</p>
+                <p><strong>Progress:</strong> ${report.progress}%</p>
+                <p><strong>PIC:</strong> ${report.handler || 'Belum ditugaskan'}</p>
+              </div>
+              <div>
+                <p><strong>ID User:</strong> ${report.userId}</p>
+                <p><strong>Dibuat:</strong> ${new Date(report.createdAt).toLocaleString('id-ID')}</p>
+              </div>
+            </div>
+            <details class="mt-2">
+              <summary class="cursor-pointer text-blue-600">Riwayat Update</summary>
+              <ul class="list-disc list-inside max-h-40 overflow-y-auto mt-2">${updatesHtml}</ul>
+            </details>
+            <form onsubmit="return updateReport(event, '${report._id}')" class="mt-4 space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block font-medium mb-1">Status</label>
+                  <select id="status-${report._id}" class="w-full border border-gray-300 rounded p-2" required>
+                    <option value="Pending" ${report.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    <option value="Diproses" ${report.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
+                    <option value="Selesai" ${report.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-medium mb-1">Progress (%)</label>
+                  <input type="number" id="progress-${report._id}" min="0" max="100" value="${report.progress}" 
+                    class="w-full border border-gray-300 rounded p-2" required />
+                </div>
+              </div>
+              <div>
+                <label class="block font-medium mb-1">PIC</label>
+                <input type="text" id="handler-${report._id}" value="${report.handler || username}" 
+                  class="w-full border border-gray-300 rounded p-2" />
+              </div>
+              <div>
+                <label class="block font-medium mb-1">Pesan Update</label>
+                <textarea id="updateMessage-${report._id}" rows="2" 
+                  class="w-full border border-gray-300 rounded p-2" required
+                  placeholder="Tambahkan keterangan update progress"></textarea>
+              </div>
+              <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 transition">
+                <i class="fas fa-save mr-2"></i>Update Progress
+              </button>
+            </form>
+          </div>
+        `;
+      });
+    }
+
+    async function updateReport(event, reportId) {
+      event.preventDefault();
+      try {
+        const status = document.getElementById(`status-${reportId}`).value;
+        const progress = parseInt(document.getElementById(`progress-${reportId}`).value, 10);
+        const handler = document.getElementById(`handler-${reportId}`).value.trim();
+        const updateMessage = document.getElementById(`updateMessage-${reportId}`).value.trim();
+
+        const res = await fetch(`${apiBase}/reports/${reportId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status, progress, handler, updateMessage }),
+        });
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            logout();
+            return false;
+          }
+          throw new Error('Gagal mengupdate laporan');
+        }
+
+        alert('Laporan berhasil diperbarui.');
+        fetchAllReports();
+      } catch (error) {
+        alert(error.message);
+      }
+      return false;
+    }
+
+    // Filter form handler
+    document.getElementById('filterForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      fetchAllReports();
+    });
+
+    // Initial fetch
+    fetchAllReports();
+  </script>
+</body>
+</html>
