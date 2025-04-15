@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Panduan Instalasi Sistem Pelaporan</title>
+    <style>
+        body {
+            font-family: 'Calibri', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c5282;
+            text-align: center;
+            border-bottom: 2px solid #2c5282;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2c5282;
+            margin-top: 30px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #4a5568;
+        }
+        code {
+            background: #f7fafc;
+            padding: 2px 5px;
+            border: 1px solid #e2e8f0;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }
+        pre {
+            background: #f7fafc;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background: #f7fafc;
+        }
+        .note {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Panduan Instalasi Sistem Pelaporan</h1>
+
+<h2>Daftar Isi</h2>
+<ol>
+    <li><a href="#requirements">Persyaratan Sistem</a></li>
+    <li><a href="#preparation">Persiapan Server</a></li>
+    <li><a href="#installation">Instalasi Aplikasi</a></li>
+    <li><a href="#configuration">Konfigurasi</a></li>
+    <li><a href="#running">Menjalankan Aplikasi</a></li>
+    <li><a href="#security">Keamanan</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+
+<h2 id="requirements">1. Persyaratan Sistem</h2>
+
+<h3>Hardware Requirements</h3>
+<table>
+    <tr>
+        <th>Komponen</th>
+        <th>Minimum</th>
+        <th>Rekomendasi</th>
+    </tr>
+    <tr>
+        <td>CPU</td>
+        <td>2 core</td>
+        <td>4 core</td>
+    </tr>
+    <tr>
+        <td>RAM</td>
+        <td>4GB</td>
+        <td>8GB</td>
+    </tr>
+    <tr>
+        <td>Storage</td>
+        <td>20GB</td>
+        <td>50GB SSD</td>
+    </tr>
+    <tr>
+        <td>Bandwidth</td>
+        <td>10Mbps</td>
+        <td>20Mbps</td>
+    </tr>
+</table>
+
+<h3>Software Requirements</h3>
+<table>
+    <tr>
+        <th>Software</th>
+        <th>Versi Minimum</th>
+        <th>Versi Rekomendasi</th>
+    </tr>
+    <tr>
+        <td>Operating System</td>
+        <td>Ubuntu 20.04 LTS</td>
+        <td>Ubuntu 22.04 LTS</td>
+    </tr>
+    <tr>
+        <td>Node.js</td>
+        <td>14.x</td>
+        <td>16.x</td>
+    </tr>
+    <tr>
+        <td>MongoDB</td>
+        <td>4.4</td>
+        <td>5.0</td>
+    </tr>
+    <tr>
+        <td>Nginx</td>
+        <td>1.18</td>
+        <td>1.20</td>
+    </tr>
+</table>
+
+<h2 id="preparation">2. Persiapan Server</h2>
+
+<h3>Update Sistem</h3>
+<pre>
+sudo apt update
+sudo apt upgrade -y
+</pre>
+
+<h3>Install Node.js</h3>
+<pre>
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt install -y nodejs
+</pre>
+
+<div class="note">
+    <strong>Note:</strong> Verifikasi instalasi dengan menjalankan:
+    <pre>node --version
+npm --version</pre>
+</div>
+
+<h3>Install MongoDB</h3>
+<pre>
+wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+sudo apt update
+sudo apt install -y mongodb-org
+sudo systemctl start mongod
+sudo systemctl enable mongod
+</pre>
+
+<h3>Install Nginx</h3>
+<pre>
+sudo apt install nginx -y
+sudo systemctl start nginx
+sudo systemctl enable nginx
+</pre>
+
+<h2 id="installation">3. Instalasi Aplikasi</h2>
+
+<h3>Setup Direktori Aplikasi</h3>
+<pre>
+sudo mkdir -p /var/www/reporting-app
+sudo chown -R $USER:$USER /var/www/reporting-app
+cd /var/www/reporting-app
+</pre>
+
+<h3>Clone dan Install</h3>
+<pre>
+git clone [URL_REPOSITORY] .
+npm install
+mkdir uploads backups
+chmod 755 uploads backups
+</pre>
+
+<div class="warning">
+    <strong>Penting!</strong> Ganti [URL_REPOSITORY] dengan URL repository yang sebenarnya.
+</div>
+
+<h2 id="configuration">4. Konfigurasi</h2>
+
+<h3>Environment Variables</h3>
+<p>Buat file <code>.env</code> di root direktori aplikasi:</p>
+<pre>
+NODE_ENV=production
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/reporting_app
+JWT_SECRET=your_secure_secret_key
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+BACKUP_DIR=/var/www/reporting-app/backups
+UPLOAD_DIR=/var/www/reporting-app/uploads
+</pre>
+
+<h3>Nginx Configuration</h3>
+<p>Buat file konfigurasi Nginx:</p>
+<pre>
+sudo nano /etc/nginx/sites-available/reporting-app
+</pre>
+
+<p>Isi dengan konfigurasi berikut:</p>
+<pre>
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        root /var/www/reporting-app/frontend;
+        index login.html;
+        try_files $uri $uri/ =404;
+    }
+
+    location /api {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /socket.io {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+</pre>
+
+<h2 id="running">5. Menjalankan Aplikasi</h2>
+
+<h3>Setup PM2</h3>
+<pre>
+sudo npm install -g pm2
+pm2 start backend/server.js --name reporting-app
+pm2 startup
+pm2 save
+</pre>
+
+<h3>Verifikasi Instalasi</h3>
+<ol>
+    <li>Cek status PM2: <code>pm2 status</code></li>
+    <li>Cek MongoDB: <code>sudo systemctl status mongod</code></li>
+    <li>Cek Nginx: <code>sudo systemctl status nginx</code></li>
+    <li>Akses aplikasi melalui browser: <code>http://your-domain.com</code></li>
+</ol>
+
+<h2 id="security">6. Keamanan</h2>
+
+<h3>Firewall Setup</h3>
+<pre>
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
+</pre>
+
+<h3>SSL Certificate</h3>
+<pre>
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d your-domain.com
+</pre>
+
+<h3>MongoDB Security</h3>
+<ol>
+    <li>Enable authentication</li>
+    <li>Restrict network access</li>
+    <li>Regular backups</li>
+</ol>
+
+<h2 id="troubleshooting">7. Troubleshooting</h2>
+
+<h3>Common Issues</h3>
+<table>
+    <tr>
+        <th>Issue</th>
+        <th>Solution</th>
+    </tr>
+    <tr>
+        <td>Aplikasi tidak berjalan</td>
+        <td>
+            <ul>
+                <li>Check PM2 logs: <code>pm2 logs reporting-app</code></li>
+                <li>Verify MongoDB connection</li>
+                <li>Check Node.js version</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>Email tidak terkirim</td>
+        <td>
+            <ul>
+                <li>Verify SMTP settings</li>
+                <li>Check email credentials</li>
+                <li>Check firewall settings</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>Upload gagal</td>
+        <td>
+            <ul>
+                <li>Check directory permissions</li>
+                <li>Verify disk space</li>
+                <li>Check file size limits</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+<h3>Maintenance</h3>
+<ul>
+    <li>Regular system updates: <code>sudo apt update && sudo apt upgrade -y</code></li>
+    <li>npm updates: <code>npm audit && npm audit fix</code></li>
+    <li>Database backup verification</li>
+    <li>Log rotation setup</li>
+</ul>
+
+<div class="note">
+    <h3>Kontak Support</h3>
+    <p>Jika mengalami masalah yang tidak tercantum di panduan ini:</p>
+    <ul>
+        <li>Email: support@example.com</li>
+        <li>Phone: +62-XXX-XXX-XXXX</li>
+        <li>Working Hours: Senin-Jumat, 09:00-17:00 WIB</li>
+    </ul>
+</div>
+
+</body>
+</html>
