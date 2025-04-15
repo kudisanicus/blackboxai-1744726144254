@@ -1,139 +1,203 @@
 # Sistem Pelaporan (Request & Komplain)
 
-Aplikasi web untuk mengelola request dan komplain dengan fitur tracking progress, rating, dan multiple user roles.
+Aplikasi web untuk mengelola request dan komplain dengan fitur lengkap termasuk chat, notifikasi email, analytics, dan backup otomatis.
 
-## Fitur
+## Fitur Utama
 
 ### Multi-Role Access
 - **User**
   - Membuat request/komplain baru
-  - Melihat status dan progress laporan
-  - Memberikan rating dan komentar setelah laporan selesai
-  - Melihat riwayat update dan PIC yang menangani
+  - Upload file attachment
+  - Chat dengan teknisi
+  - Memberikan rating dan komentar
+  - Menerima notifikasi email
 
 - **Teknisi**
-  - Melihat semua laporan
-  - Mengambil dan menangani laporan
-  - Mengupdate status dan progress
-  - Menambahkan keterangan update
-  - Tidak bisa menghapus laporan
+  - Menangani laporan
+  - Chat dengan user
+  - Melihat analytics dashboard
+  - Upload file penyelesaian
+  - Update progress realtime
 
 - **Admin**
   - Akses penuh ke semua fitur
-  - Mengelola user (menambah user baru)
-  - Menghapus laporan
-  - Export laporan ke CSV
-  - Filter laporan berdasarkan periode
+  - Manajemen user
+  - Export data
+  - Akses analytics dashboard
+  - Manajemen backup
 
-### Fitur Utama
-- Autentikasi dengan JWT
-- Role-based access control
-- Rating dan feedback untuk laporan selesai
-- Tracking progress realtime
-- Riwayat update dengan timestamp
-- Export data ke CSV
-- Filter laporan berdasarkan periode
-- Responsive design dengan Tailwind CSS
+### Fitur Baru
+1. **Chat Realtime**
+   - Komunikasi langsung antara user dan teknisi
+   - Status online/offline
+   - Notifikasi pesan baru
+   - Attachment dalam chat
+
+2. **Notifikasi Email**
+   - Laporan baru
+   - Update status
+   - Pesan chat baru
+   - Notifikasi backup
+
+3. **Analytics Dashboard**
+   - Statistik umum
+   - Trend laporan
+   - Performa teknisi
+   - Distribusi rating
+   - Analisis waktu respon
+
+4. **Upload File**
+   - Support berbagai format file
+   - Limit ukuran 5MB
+   - Preview file
+   - Attachment pada laporan dan chat
+
+5. **Backup Otomatis**
+   - Backup harian
+   - Rotasi backup
+   - Kompresi file backup
+   - Notifikasi status backup
 
 ## Persyaratan Sistem
 
 - Node.js
 - MongoDB
-- Web Browser Modern
+- SMTP Server (untuk email)
+- Disk space untuk file uploads dan backups
 
-## Cara Instalasi
+## Instalasi
 
-1. Install MongoDB
-   ```bash
-   # Install MongoDB dari website resmi
-   # Pastikan service MongoDB berjalan
-   ```
-
-2. Clone repository dan install dependensi:
+1. Clone repository dan install dependensi:
    ```bash
    cd reporting-app
    npm install
    ```
 
-## Cara Menjalankan
+2. Konfigurasi email di `backend/email.js`:
+   ```javascript
+   const transporter = nodemailer.createTransport({
+     host: 'smtp.gmail.com',
+     port: 587,
+     auth: {
+       user: 'your-email@gmail.com',
+       pass: 'your-app-password'
+     }
+   });
+   ```
 
-1. Pastikan MongoDB berjalan
-
-2. Jalankan server backend:
+3. Buat direktori untuk uploads dan backups:
    ```bash
-   cd reporting-app
+   mkdir uploads
+   mkdir backups
+   ```
+
+4. Sesuaikan konfigurasi backup di `backend/backup.js`:
+   ```javascript
+   const config = {
+     backupDir: '../backups',
+     keepBackups: 7,
+     schedule: '0 1 * * *'  // Setiap hari jam 1 pagi
+   };
+   ```
+
+## Menjalankan Aplikasi
+
+1. Start MongoDB:
+   ```bash
+   mongod
+   ```
+
+2. Jalankan server:
+   ```bash
    npm start
    ```
-   Server akan berjalan di http://localhost:3000
 
 3. Buka aplikasi di browser:
-   - Halaman Login: buka file `frontend/login.html`
+   - Login: `frontend/login.html`
+   - User Dashboard: `frontend/index.html`
+   - Admin Dashboard: `frontend/admin.html`
+   - Teknisi Dashboard: `frontend/teknisi.html`
+   - Analytics: `frontend/analytics.html`
 
-## Akun Default
+## Penggunaan Fitur
 
-```
-User Biasa:
-- Username: user
-- Password: user
-- Role: user
+### Chat
+1. Buka detail laporan
+2. Klik tab "Chat"
+3. Mulai percakapan dengan teknisi/user
+4. Upload file jika diperlukan
 
-Teknisi:
-- Username: teknisi
-- Password: teknisi
-- Role: teknisi
+### File Upload
+- Format yang didukung: PDF, Image, Doc, ZIP
+- Maksimal ukuran: 5MB
+- Lokasi file: `/uploads`
 
-Admin:
-- Username: admin
-- Password: admin
-- Role: admin
-```
+### Analytics Dashboard
+1. Akses `frontend/analytics.html`
+2. Pilih periode analisis
+3. Lihat berbagai metrik dan grafik
+4. Export data jika diperlukan
 
-## Alur Penggunaan
-
-### User
-1. Login dengan akun user
-2. Buat request/komplain baru
-3. Pantau progress di daftar laporan
-4. Setelah status "Selesai", berikan rating dan komentar
-
-### Teknisi
-1. Login dengan akun teknisi
-2. Lihat daftar laporan yang perlu ditangani
-3. Update status, progress, dan tambahkan keterangan
-4. Setelah selesai, ubah status menjadi "Selesai"
-
-### Admin
-1. Login dengan akun admin
-2. Akses ke semua fitur termasuk:
-   - Manajemen user
-   - Hapus laporan
-   - Export data
-   - Filter berdasarkan periode
+### Backup
+- Automatic: Berjalan sesuai jadwal di config
+- Manual: Melalui Admin Dashboard
+- Lokasi: `/backups`
+- Format: `.tar.gz`
 
 ## Struktur Database
 
 ### Collection: Reports
-- userId: ID pengguna
-- type: Tipe laporan (Request/Komplain)
-- title: Judul laporan
-- description: Deskripsi detail
-- status: Status laporan (Pending/Diproses/Selesai)
-- progress: Persentase progress (0-100)
-- handler: PIC yang menangani
-- rating: Rating dari user (1-5)
-- comment: Komentar feedback
-- updates: Array dari update/komentar dengan timestamp
-- createdAt: Waktu pembuatan laporan
+- Informasi laporan
+- File attachments
+- Riwayat update
+- Rating dan komentar
+
+### Collection: Chats
+- Pesan chat
+- Info pengirim
+- Timestamp
+- File attachments
+
+### Collection: Attachments
+- Metadata file
+- Path penyimpanan
+- Info upload
 
 ## Keamanan
-- Autentikasi menggunakan JWT
+- JWT Authentication
 - Role-based access control
-- Validasi input di frontend dan backend
-- Sanitasi data sebelum disimpan ke database
+- File type validation
+- Email notifications
+- Backup encryption
+
+## Monitoring
+- Server logs
+- Email notifications
+- Backup status
+- User activity
+- System performance
+
+## Troubleshooting
+
+### Email Tidak Terkirim
+1. Cek konfigurasi SMTP
+2. Verifikasi kredensial email
+3. Periksa firewall/port
+
+### Backup Gagal
+1. Cek disk space
+2. Verifikasi permissions
+3. Periksa log backup
+
+### Upload Gagal
+1. Cek ukuran file
+2. Verifikasi format file
+3. Periksa disk space
+4. Cek permissions folder
 
 ## Pengembangan Selanjutnya
-- Implementasi notifikasi email
-- Dashboard analytics
-- Fitur upload file attachment
-- Fitur chat antara user dan teknisi
-- Backup otomatis database
+- Mobile app
+- Integrasi WhatsApp
+- Dashboard customization
+- Advanced analytics
+- Multi-language support
