@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Analytics Dashboard - Sistem Pelaporan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <header class="bg-purple-700 text-white p-4 shadow">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-semibold">Analytics Dashboard</h1>
+      <div class="flex items-center space-x-4">
+        <span id="userInfo" class="text-sm"></span>
+        <button onclick="logout()" class="bg-purple-800 text-white px-4 py-2 rounded hover:bg-purple-900 transition">
+          <i class="fas fa-sign-out-alt mr-2"></i>Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto p-4">
+    <!-- Filter Period -->
+    <section class="mb-6 bg-white p-4 rounded shadow">
+      <div class="flex items-center space-x-4">
+        <div>
+          <label class="block font-medium mb-1">Periode</label>
+          <select id="period" class="border border-gray-300 rounded p-2" onchange="updateDashboard()">
+            <option value="daily">Harian (30 hari terakhir)</option>
+            <option value="monthly">Bulanan (12 bulan terakhir)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- General Stats -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="text-gray-500 text-sm">Total Laporan</h3>
+        <p id="totalReports" class="text-2xl font-semibold">-</p>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="text-gray-500 text-sm">Selesai</h3>
+        <p id="completedReports" class="text-2xl font-semibold text-green-600">-</p>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="text-gray-500 text-sm">Dalam Proses</h3>
+        <p id="inProgressReports" class="text-2xl font-semibold text-yellow-600">-</p>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <h3 class="text-gray-500 text-sm">Rating Rata-rata</h3>
+        <p id="averageRating" class="text-2xl font-semibold text-blue-600">-</p>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <!-- Trend Chart -->
+      <section class="bg-white p-4 rounded shadow">
+        <h2 class="text-lg font-semibold mb-4">Trend Laporan</h2>
+        <canvas id="trendChart"></canvas>
+      </section>
+
+      <!-- Type Distribution -->
+      <section class="bg-white p-4 rounded shadow">
+        <h2 class="text-lg font-semibold mb-4">Distribusi Tipe Laporan</h2>
+        <canvas id="typeChart"></canvas>
+      </section>
+    </div>
+
+    <!-- Performance Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <!-- Rating Distribution -->
+      <section class="bg-white p-4 rounded shadow">
+        <h2 class="text-lg font-semibold mb-4">Distribusi Rating</h2>
+        <canvas id="ratingChart"></canvas>
+      </section>
+
+      <!-- Response Time -->
+      <section class="bg-white p-4 rounded shadow">
+        <h2 class="text-lg font-semibold mb-4">Waktu Respon</h2>
+        <div id="responseTimeStats" class="space-y-4">
+          <div>
+            <h3 class="text-sm text-gray-500">Rata-rata Respon Pertama</h3>
+            <p id="avgFirstResponse" class="text-xl font-semibold">-</p>
+          </div>
+          <div>
+            <h3 class="text-sm text-gray-500">Rata-rata Waktu Penyelesaian</h3>
+            <p id="avgResolution" class="text-xl font-semibold">-</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Technician Performance -->
+    <section class="bg-white p-4 rounded shadow mb-6">
+      <h2 class="text-lg font-semibold mb-4">Performa Teknisi</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teknisi</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Ditangani</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selesai</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Rata-rata</th>
+            </tr>
+          </thead>
+          <tbody id="technicianStats" class="bg-white divide-y divide-gray-200">
+            <!-- Data will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-200 text-center p-4 text-sm text-gray-600">
+    &copy; 2024 Sistem Pelaporan
+  </footer>
+
+  <script>
+    const apiBase = 'http://localhost:3000/api';
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    const role = localStorage.getItem('role');
+
+    // Check authentication and role
+    if (!token || !username || !['admin', 'teknisi'].includes(role)) {
+      window.location.href = 'login.html';
+    }
+
+    // Display user info
+    document.getElementById('userInfo').textContent = `${role.charAt(0).toUpperCase() + role.slice(1)}: ${username}`;
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
+      window.location.href = 'login.html';
+    }
+
+    let trendChart, typeChart, ratingChart;
+
+    async function updateDashboard() {
+      try {
+        const period = document.getElementById('period').value;
+        
+        // Fetch all analytics data
+        const [generalStats, trends, typeStats, ratingStats, responseTime, techPerformance] = await Promise.all([
+          fetchData('/analytics/general'),
+          fetchData(`/analytics/trends?period=${period}`),
+          fetchData('/analytics/types'),
+          fetchData('/analytics/ratings'),
+          fetchData('/analytics/response-time'),
+          fetchData('/analytics/technicians')
+        ]);
+
+        // Update general stats
+        updateGeneralStats(generalStats);
+        
+        // Update charts
+        updateTrendChart(trends, period);
+        updateTypeChart(typeStats);
+        updateRatingChart(ratingStats);
+        
+        // Update response time stats
+        updateResponseTimeStats(responseTime);
+        
+        // Update technician performance table
+        updateTechnicianStats(techPerformance);
+
+      } catch (error) {
+        console.error('Error updating dashboard:', error);
+        if (error.status === 401 || error.status === 403) {
+          logout();
+        }
+      }
+    }
+
+    async function fetchData(endpoint) {
+      const res = await fetch(`${apiBase}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        throw { status: res.status, message: 'Failed to fetch data' };
+      }
+
+      return res.json();
+    }
+
+    function updateGeneralStats(stats) {
+      document.getElementById('totalReports').textContent = stats.total;
+      document.getElementById('completedReports').textContent = stats.completed;
+      document.getElementById('inProgressReports').textContent = stats.inProgress;
+      document.getElementById('averageRating').textContent = `${stats.averageRating} ⭐`;
+    }
+
+    function updateTrendChart(data, period) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      
+      if (trendChart) {
+        trendChart.destroy();
+      }
+
+      trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d._id),
+          datasets: [
+            {
+              label: 'Total Laporan',
+              data: data.map(d => d.count),
+              borderColor: 'rgb(59, 130, 246)',
+              tension: 0.1
+            },
+            {
+              label: 'Selesai',
+              data: data.map(d => d.completed),
+              borderColor: 'rgb(34, 197, 94)',
+              tension: 0.1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: period === 'daily' ? '30 Hari Terakhir' : '12 Bulan Terakhir'
+            }
+          }
+        }
+      });
+    }
+
+    function updateTypeChart(data) {
+      const ctx = document.getElementById('typeChart').getContext('2d');
+      
+      if (typeChart) {
+        typeChart.destroy();
+      }
+
+      typeChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: data.map(d => d._id),
+          datasets: [{
+            data: data.map(d => d.count),
+            backgroundColor: [
+              'rgb(59, 130, 246)',
+              'rgb(239, 68, 68)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function updateRatingChart(data) {
+      const ctx = document.getElementById('ratingChart').getContext('2d');
+      
+      if (ratingChart) {
+        ratingChart.destroy();
+      }
+
+      ratingChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.distribution.map(d => `${d.rating} ⭐`),
+          datasets: [{
+            label: 'Jumlah Rating',
+            data: data.distribution.map(d => d.count),
+            backgroundColor: 'rgb(59, 130, 246)'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+
+    function updateResponseTimeStats(stats) {
+      document.getElementById('avgFirstResponse').textContent = 
+        `${Math.round(stats.avgFirstResponse)} menit`;
+      document.getElementById('avgResolution').textContent = 
+        `${Math.round(stats.avgResolution)} jam`;
+    }
+
+    function updateTechnicianStats(data) {
+      const tbody = document.getElementById('technicianStats');
+      tbody.innerHTML = data.map(tech => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap">${tech.handler}</td>
+          <td class="px-6 py-4 whitespace-nowrap">${tech.totalHandled}</td>
+          <td class="px-6 py-4 whitespace-nowrap">${tech.completionRate}%</td>
+          <td class="px-6 py-4 whitespace-nowrap">${tech.avgRating} ⭐</td>
+          <td class="px-6 py-4 whitespace-nowrap">${tech.avgResolutionTime} jam</td>
+        </tr>
+      `).join('');
+    }
+
+    // Initial load
+    updateDashboard();
+  </script>
+</body>
+</html>
