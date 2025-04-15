@@ -1,0 +1,221 @@
+PANDUAN INSTALASI SISTEM PELAPORAN
+==================================
+
+DAFTAR ISI
+----------
+1. Persyaratan Sistem
+2. Persiapan Server
+3. Instalasi Aplikasi
+4. Konfigurasi
+5. Menjalankan Aplikasi
+6. Keamanan
+7. Troubleshooting
+
+1. PERSYARATAN SISTEM
+--------------------
+Hardware:
+- CPU: Minimal 2 core
+- RAM: Minimal 4GB
+- Storage: Minimal 20GB (untuk aplikasi, uploads, dan backups)
+- Bandwidth: Minimal 10Mbps
+
+Software:
+- Operating System: Ubuntu 20.04 LTS atau yang lebih baru
+- Node.js: v14.x atau yang lebih baru
+- MongoDB: v4.4 atau yang lebih baru
+- SMTP Server (untuk email notifications)
+- Nginx (web server)
+- SSL Certificate
+
+2. PERSIAPAN SERVER
+------------------
+a) Update sistem
+   ```
+   sudo apt update
+   sudo apt upgrade -y
+   ```
+
+b) Install Node.js
+   ```
+   curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+   sudo apt install -y nodejs
+   ```
+
+c) Install MongoDB
+   ```
+   wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+   echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+   sudo apt update
+   sudo apt install -y mongodb-org
+   sudo systemctl start mongod
+   sudo systemctl enable mongod
+   ```
+
+d) Install Nginx
+   ```
+   sudo apt install nginx -y
+   ```
+
+e) Install SSL Certificate
+   ```
+   sudo apt install certbot python3-certbot-nginx -y
+   ```
+
+3. INSTALASI APLIKASI
+--------------------
+a) Buat direktori aplikasi
+   ```
+   sudo mkdir -p /var/www/reporting-app
+   sudo chown -R $USER:$USER /var/www/reporting-app
+   ```
+
+b) Clone repository
+   ```
+   cd /var/www/reporting-app
+   git clone [URL_REPOSITORY] .
+   ```
+
+c) Install dependencies
+   ```
+   npm install
+   ```
+
+d) Buat direktori untuk uploads dan backups
+   ```
+   mkdir uploads backups
+   chmod 755 uploads backups
+   ```
+
+4. KONFIGURASI
+-------------
+a) Konfigurasi Environment Variables
+   Buat file .env:
+   ```
+   NODE_ENV=production
+   PORT=3000
+   MONGODB_URI=mongodb://localhost:27017/reporting_app
+   JWT_SECRET=your_secure_secret_key
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   BACKUP_DIR=/var/www/reporting-app/backups
+   UPLOAD_DIR=/var/www/reporting-app/uploads
+   ```
+
+b) Konfigurasi Nginx
+   Buat file konfigurasi:
+   ```
+   sudo nano /etc/nginx/sites-available/reporting-app
+   ```
+
+   Isi dengan:
+   ```
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       location / {
+           root /var/www/reporting-app/frontend;
+           index login.html;
+           try_files $uri $uri/ =404;
+       }
+
+       location /api {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+
+       location /socket.io {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+   Aktifkan konfigurasi:
+   ```
+   sudo ln -s /etc/nginx/sites-available/reporting-app /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+c) Setup SSL
+   ```
+   sudo certbot --nginx -d your-domain.com
+   ```
+
+5. MENJALANKAN APLIKASI
+----------------------
+a) Setup PM2 untuk process management
+   ```
+   sudo npm install -g pm2
+   pm2 start backend/server.js --name reporting-app
+   pm2 startup
+   pm2 save
+   ```
+
+b) Verifikasi aplikasi berjalan
+   ```
+   pm2 status
+   curl http://localhost:3000/api/health
+   ```
+
+6. KEAMANAN
+----------
+a) Firewall Setup
+   ```
+   sudo ufw allow 22
+   sudo ufw allow 80
+   sudo ufw allow 443
+   sudo ufw enable
+   ```
+
+b) MongoDB Security
+   ```
+   sudo nano /etc/mongod.conf
+   ```
+   Aktifkan authentication dan bind IP
+
+c) Regular Updates
+   ```
+   sudo apt update
+   sudo apt upgrade -y
+   npm audit
+   npm audit fix
+   ```
+
+7. TROUBLESHOOTING
+----------------
+a) Jika aplikasi tidak berjalan:
+   - Cek logs: `pm2 logs reporting-app`
+   - Cek MongoDB: `sudo systemctl status mongod`
+   - Cek Nginx: `sudo nginx -t`
+
+b) Jika email tidak terkirim:
+   - Verifikasi SMTP settings
+   - Cek firewall untuk port SMTP
+   - Cek logs email di server
+
+c) Jika upload gagal:
+   - Cek permissions folder uploads
+   - Verifikasi disk space
+   - Cek log aplikasi
+
+d) Jika backup gagal:
+   - Cek permissions folder backups
+   - Verifikasi disk space
+   - Cek cron logs
+
+KONTAK SUPPORT
+-------------
+Email: support@example.com
+Phone: +62-XXX-XXX-XXXX
