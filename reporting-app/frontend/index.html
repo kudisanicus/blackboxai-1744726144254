@@ -1,116 +1,257 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>User Reporting Portal</title>
+  <title>Portal User - Sistem Pelaporan</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
+    body { font-family: 'Inter', sans-serif; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
   <header class="bg-blue-600 text-white p-4 shadow">
-    <h1 class="text-2xl font-semibold">User Request & Complaint Portal</h1>
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-semibold">Portal Request & Komplain</h1>
+      <div class="flex items-center space-x-4">
+        <span id="userInfo" class="text-sm"></span>
+        <button onclick="logout()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800 transition">
+          <i class="fas fa-sign-out-alt mr-2"></i>Logout
+        </button>
+      </div>
+    </div>
   </header>
+  
   <main class="flex-grow container mx-auto p-4">
     <section class="mb-8">
-      <h2 class="text-xl font-semibold mb-4">Create New Request / Complaint</h2>
+      <h2 class="text-xl font-semibold mb-4">Buat Request / Komplain Baru</h2>
       <form id="reportForm" class="bg-white p-6 rounded shadow-md max-w-lg">
-        <input type="hidden" id="userId" value="user1" />
         <div class="mb-4">
-          <label for="type" class="block font-medium mb-1">Type</label>
+          <label for="type" class="block font-medium mb-1">Tipe</label>
           <select id="type" class="w-full border border-gray-300 rounded p-2" required>
-            <option value="">Select type</option>
+            <option value="">Pilih tipe</option>
             <option value="Request">Request</option>
-            <option value="Complaint">Complaint</option>
+            <option value="Komplain">Komplain</option>
           </select>
         </div>
         <div class="mb-4">
-          <label for="title" class="block font-medium mb-1">Title</label>
-          <input type="text" id="title" class="w-full border border-gray-300 rounded p-2" required />
+          <label for="title" class="block font-medium mb-1">Judul</label>
+          <input type="text" id="title" class="w-full border border-gray-300 rounded p-2" required 
+            placeholder="Masukkan judul request/komplain" />
         </div>
         <div class="mb-4">
-          <label for="description" class="block font-medium mb-1">Description</label>
-          <textarea id="description" rows="4" class="w-full border border-gray-300 rounded p-2" required></textarea>
+          <label for="description" class="block font-medium mb-1">Deskripsi</label>
+          <textarea id="description" rows="4" class="w-full border border-gray-300 rounded p-2" required
+            placeholder="Jelaskan detail request/komplain Anda"></textarea>
         </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Submit</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+          <i class="fas fa-paper-plane mr-2"></i>Kirim
+        </button>
       </form>
     </section>
+
     <section>
-      <h2 class="text-xl font-semibold mb-4">My Reports</h2>
+      <h2 class="text-xl font-semibold mb-4">Riwayat Laporan Saya</h2>
       <div id="reportsList" class="space-y-4">
         <!-- Reports will be rendered here -->
       </div>
     </section>
   </main>
+
   <footer class="bg-gray-200 text-center p-4 text-sm text-gray-600">
-    &copy; 2024 Reporting App
+    &copy; 2024 Sistem Pelaporan
   </footer>
 
   <script>
     const apiBase = 'http://localhost:3000/api';
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+
+    // Check authentication
+    if (!token || !username) {
+      window.location.href = 'login.html';
+    }
+
+    // Display user info
+    document.getElementById('userInfo').textContent = `User: ${username}`;
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
+      window.location.href = 'login.html';
+    }
 
     async function fetchReports() {
-      const userId = document.getElementById('userId').value;
-      const res = await fetch(`${apiBase}/reports?userId=${userId}`);
-      const reports = await res.json();
-      renderReports(reports);
+      try {
+        const res = await fetch(`${apiBase}/reports`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+          }
+          throw new Error('Gagal mengambil data');
+        }
+
+        const reports = await res.json();
+        renderReports(reports);
+      } catch (error) {
+        alert(error.message);
+      }
     }
 
     function renderReports(reports) {
       const container = document.getElementById('reportsList');
       container.innerHTML = '';
+      
       if (reports.length === 0) {
-        container.innerHTML = '<p class="text-gray-600">No reports found.</p>';
+        container.innerHTML = '<p class="text-gray-600">Belum ada laporan.</p>';
         return;
       }
+
       reports.forEach(report => {
-        const updatesHtml = report.updates.map(u => `<li class="text-sm text-gray-500">[${new Date(u.date).toLocaleString()}] ${u.message}</li>`).join('');
+        const updatesHtml = report.updates.map(u => 
+          `<li class="text-sm text-gray-500">[${new Date(u.date).toLocaleString('id-ID')}] ${u.message}</li>`
+        ).join('');
+
+        const ratingSection = report.status === 'Selesai' ? `
+          <div class="mt-4 p-4 bg-gray-50 rounded">
+            <h4 class="font-medium mb-2">Rating & Feedback</h4>
+            ${report.rating ? `
+              <div>
+                <p><strong>Rating:</strong> ${report.rating}/5</p>
+                <p><strong>Komentar:</strong> ${report.comment || '-'}</p>
+              </div>
+            ` : `
+              <form onsubmit="return submitRating(event, '${report._id}')" class="space-y-3">
+                <div>
+                  <label class="block font-medium mb-1">Rating (1-5)</label>
+                  <select id="rating-${report._id}" class="w-full border border-gray-300 rounded p-2" required>
+                    <option value="">Pilih rating</option>
+                    <option value="5">⭐⭐⭐⭐⭐ (Sangat Puas)</option>
+                    <option value="4">⭐⭐⭐⭐ (Puas)</option>
+                    <option value="3">⭐⭐⭐ (Cukup)</option>
+                    <option value="2">⭐⭐ (Kurang)</option>
+                    <option value="1">⭐ (Sangat Kurang)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-medium mb-1">Komentar</label>
+                  <textarea id="comment-${report._id}" rows="2" 
+                    class="w-full border border-gray-300 rounded p-2"
+                    placeholder="Berikan komentar Anda"></textarea>
+                </div>
+                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                  <i class="fas fa-star mr-2"></i>Kirim Rating
+                </button>
+              </form>
+            `}
+          </div>
+        ` : '';
+
         container.innerHTML += `
-          <div class="bg-white p-4 rounded shadow">
-            <h3 class="font-semibold text-lg">${report.title} <span class="text-sm font-normal text-gray-600">(${report.type})</span></h3>
+          <div class="bg-white p-6 rounded shadow">
+            <h3 class="font-semibold text-lg">${report.title} 
+              <span class="text-sm font-normal text-gray-600">(${report.type})</span>
+            </h3>
             <p class="text-gray-700 mb-2">${report.description}</p>
-            <p><strong>Status:</strong> ${report.status}</p>
-            <p><strong>Progress:</strong> ${report.progress}%</p>
-            <p><strong>Handler:</strong> ${report.handler ? report.handler : 'Not assigned'}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p><strong>Status:</strong> ${report.status}</p>
+                <p><strong>Progress:</strong> ${report.progress}%</p>
+                <p><strong>PIC:</strong> ${report.handler || 'Belum ditugaskan'}</p>
+              </div>
+              <div>
+                <p><strong>Dibuat:</strong> ${new Date(report.createdAt).toLocaleString('id-ID')}</p>
+              </div>
+            </div>
             <details class="mt-2">
-              <summary class="cursor-pointer text-blue-600">Updates</summary>
-              <ul class="list-disc list-inside max-h-40 overflow-y-auto">${updatesHtml}</ul>
+              <summary class="cursor-pointer text-blue-600">Riwayat Update</summary>
+              <ul class="list-disc list-inside max-h-40 overflow-y-auto mt-2">${updatesHtml}</ul>
             </details>
+            ${ratingSection}
           </div>
         `;
       });
     }
 
+    async function submitRating(event, reportId) {
+      event.preventDefault();
+      try {
+        const rating = parseInt(document.getElementById(`rating-${reportId}`).value);
+        const comment = document.getElementById(`comment-${reportId}`).value.trim();
+
+        const res = await fetch(`${apiBase}/reports/${reportId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ rating, comment }),
+        });
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            logout();
+            return false;
+          }
+          throw new Error('Gagal mengirim rating');
+        }
+
+        alert('Rating berhasil dikirim.');
+        fetchReports();
+      } catch (error) {
+        alert(error.message);
+      }
+      return false;
+    }
+
     document.getElementById('reportForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const userId = document.getElementById('userId').value;
-      const type = document.getElementById('type').value;
-      const title = document.getElementById('title').value.trim();
-      const description = document.getElementById('description').value.trim();
+      try {
+        const type = document.getElementById('type').value;
+        const title = document.getElementById('title').value.trim();
+        const description = document.getElementById('description').value.trim();
 
-      if (!type || !title || !description) {
-        alert('Please fill in all fields.');
-        return;
-      }
+        if (!type || !title || !description) {
+          alert('Mohon lengkapi semua field.');
+          return;
+        }
 
-      const res = await fetch(`${apiBase}/reports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, type, title, description }),
-      });
+        const res = await fetch(`${apiBase}/reports`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ 
+            userId: username,
+            type, 
+            title, 
+            description 
+          }),
+        });
 
-      if (res.ok) {
-        alert('Report submitted successfully.');
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+          }
+          throw new Error('Gagal mengirim laporan');
+        }
+
+        alert('Laporan berhasil dikirim.');
         e.target.reset();
         fetchReports();
-      } else {
-        alert('Failed to submit report.');
+      } catch (error) {
+        alert(error.message);
       }
     });
 
